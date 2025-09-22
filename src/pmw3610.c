@@ -565,12 +565,12 @@ static enum pixart_input_mode get_input_mode_for_current_layer(const struct devi
     const struct pixart_config *config = dev->config;
     uint8_t curr_layer = 0;
 
-#ifdef CONFIG_ZMK_SPLIT_ROLE_CENTRAL
-    curr_layer = zmk_keymap_highest_layer_active();
-#else
-    // On peripherals, default to layer 0 (or MOVE)
-    curr_layer = 0;
-#endif
+    #ifdef CONFIG_ZMK_SPLIT_ROLE_CENTRAL
+        curr_layer = zmk_keymap_highest_layer_active();
+    #else
+        // On peripherals, default to layer 0 (or MOVE)
+        curr_layer = 0;
+    #endif
 
     for (size_t i = 0; i < config->scroll_layers_len; i++) {
         if (curr_layer == config->scroll_layers[i]) {
