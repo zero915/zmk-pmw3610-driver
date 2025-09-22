@@ -563,15 +563,7 @@ K_TIMER_DEFINE(automouse_layer_timer, deactivate_automouse_layer, NULL);
 
 static enum pixart_input_mode get_input_mode_for_current_layer(const struct device *dev) {
     const struct pixart_config *config = dev->config;
-    uint8_t curr_layer = 0;
-
-    #ifdef CONFIG_ZMK_SPLIT_ROLE_CENTRAL
-        curr_layer = zmk_keymap_highest_layer_active();
-    #else
-        // On peripherals, default to layer 0 (or MOVE)
-        curr_layer = 0;
-    #endif
-
+    uint8_t curr_layer = zmk_keymap_highest_layer_active();
     for (size_t i = 0; i < config->scroll_layers_len; i++) {
         if (curr_layer == config->scroll_layers[i]) {
             return SCROLL;
@@ -584,7 +576,6 @@ static enum pixart_input_mode get_input_mode_for_current_layer(const struct devi
     }
     return MOVE;
 }
-
 
 static int pmw3610_report_data(const struct device *dev) {
     struct pixart_data *data = dev->data;
