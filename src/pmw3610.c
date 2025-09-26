@@ -14,6 +14,7 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/input/input.h>
 #include <zmk/keymap.h>
+#include <zmk/mouse.h>
 #include "pmw3610.h"
 
 #include <zephyr/logging/log.h>
@@ -716,8 +717,6 @@ static enum pixart_input_mode get_input_mode_for_current_layer(const struct devi
 
 //     return err;
 // }
-
-#include <zmk/mouse.h>
 
 static int pmw3610_report_data(const struct device *dev) {
     struct pixart_data *data = dev->data;
