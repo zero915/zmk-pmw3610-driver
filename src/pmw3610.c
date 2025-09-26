@@ -14,7 +14,11 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/input/input.h>
 #include <zmk/keymap.h>
-#include <zmk/hid/mouse.h>
+
+#include <zmk/hid.h>
+#include <zmk/event_manager.h>
+#include <zmk/events/mouse/move.h>
+#include <zmk/events/mouse/button.h>
 
 #include "pmw3610.h"
 
@@ -828,17 +832,29 @@ static int pmw3610_report_data(const struct device *dev) {
 
     if (x != 0 || y != 0) {
         if (input_mode != SCROLL) {
-            zmk_mouse_move(x, y); // send movement to central via split BLE
+            struct zmk_mouse_move move = {
+                .dx = x,
+                .dy = y,
+            };
+            ZMK_EVENT_RAISE(move); // sends movement via split BLE
         } else {
             data->scroll_delta_x += x;
             data->scroll_delta_y += y;
 
             if (abs(data->scroll_delta_y) > CONFIG_PMW3610_SCROLL_TICK) {
-                zmk_mouse_scroll(0, data->scroll_delta_y > 0 ? -1 : 1);
+                struct zmk_mouse_move scroll = {
+                    .dx = 0,
+                    .dy = data->scroll_delta_y > 0 ? -1 : 1,
+                };
+                ZMK_EVENT_RAISE(scroll);
                 data->scroll_delta_x = 0;
                 data->scroll_delta_y = 0;
             } else if (abs(data->scroll_delta_x) > CONFIG_PMW3610_SCROLL_TICK) {
-                zmk_mouse_scroll(data->scroll_delta_x > 0 ? -1 : 1, 0);
+                struct zmk_mouse_move scroll = {
+                    .dx = data->scroll_delta_x > 0 ? -1 : 1,
+                    .dy = 0,
+                };
+                ZMK_EVENT_RAISE(scroll);
                 data->scroll_delta_x = 0;
                 data->scroll_delta_y = 0;
             }
