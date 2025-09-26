@@ -18,3 +18,9 @@ properties:
   automouse-layer:
     type: int
     default: -1
+  evt-type:
+    type: int
+  x-input-code:
+    type: int
+  y-input-code:
+    type: int
