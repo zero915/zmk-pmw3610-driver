@@ -581,6 +581,144 @@ static enum pixart_input_mode get_input_mode_for_current_layer(const struct devi
     return MOVE;
 }
 
+// static int pmw3610_report_data(const struct device *dev) {
+//     struct pixart_data *data = dev->data;
+//     uint8_t buf[PMW3610_BURST_SIZE];
+
+//     if (unlikely(!data->ready)) {
+//         LOG_WRN("Device is not initialized yet");
+//         return -EBUSY;
+//     }
+
+//     int32_t dividor;
+//     enum pixart_input_mode input_mode = get_input_mode_for_current_layer(dev);
+//     bool input_mode_changed = data->curr_mode != input_mode;
+//     switch (input_mode) {
+//     case MOVE:
+//         set_cpi_if_needed(dev, CONFIG_PMW3610_CPI);
+//         dividor = CONFIG_PMW3610_CPI_DIVIDOR;
+//         break;
+//     case SCROLL:
+//         set_cpi_if_needed(dev, CONFIG_PMW3610_CPI);
+//         if (input_mode_changed) {
+//             data->scroll_delta_x = 0;
+//             data->scroll_delta_y = 0;
+//         }
+//         dividor = 1; // this should be handled with the ticks rather than dividors
+//         break;
+//     case SNIPE:
+//         set_cpi_if_needed(dev, CONFIG_PMW3610_SNIPE_CPI);
+//         dividor = CONFIG_PMW3610_SNIPE_CPI_DIVIDOR;
+//         break;
+//     default:
+//         return -ENOTSUP;
+//     }
+
+//     data->curr_mode = input_mode;
+
+// #if AUTOMOUSE_LAYER > 0
+//     if (input_mode == MOVE &&
+//             (automouse_triggered || zmk_keymap_highest_layer_active() != AUTOMOUSE_LAYER)
+//     ) {
+//         activate_automouse_layer();
+//     }
+// #endif
+
+//     int err = motion_burst_read(dev, buf, sizeof(buf));
+//     if (err) {
+//         return err;
+//     }
+
+//     int16_t raw_x =
+//         TOINT16((buf[PMW3610_X_L_POS] + ((buf[PMW3610_XY_H_POS] & 0xF0) << 4)), 12) / dividor;
+//     int16_t raw_y =
+//         TOINT16((buf[PMW3610_Y_L_POS] + ((buf[PMW3610_XY_H_POS] & 0x0F) << 8)), 12) / dividor;
+
+//     int16_t x;
+//     int16_t y;
+
+//     if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_0)) {
+//         x = -raw_x;
+//         y = raw_y;
+//     } else if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_90)) {
+//         x = raw_y;
+//         y = -raw_x;
+//     } else if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_180)) {
+//         x = raw_x;
+//         y = -raw_y;
+//     } else if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_270)) {
+//         x = -raw_y;
+//         y = raw_x;
+//     }
+
+//     if (IS_ENABLED(CONFIG_PMW3610_INVERT_X)) {
+//         x = -x;
+//     }
+
+//     if (IS_ENABLED(CONFIG_PMW3610_INVERT_Y)) {
+//         y = -y;
+//     }
+
+// #ifdef CONFIG_PMW3610_SMART_ALGORITHM
+//     int16_t shutter =
+//         ((int16_t)(buf[PMW3610_SHUTTER_H_POS] & 0x01) << 8) + buf[PMW3610_SHUTTER_L_POS];
+//     if (data->sw_smart_flag && shutter < 45) {
+//         reg_write(dev, 0x32, 0x00);
+
+//         data->sw_smart_flag = false;
+//     }
+
+//     if (!data->sw_smart_flag && shutter > 45) {
+//         reg_write(dev, 0x32, 0x80);
+
+//         data->sw_smart_flag = true;
+//     }
+// #endif
+
+// #ifdef CONFIG_PMW3610_POLLING_RATE_125_SW
+//     int64_t curr_time = k_uptime_get();
+//     if (data->last_poll_time == 0 || curr_time - data->last_poll_time > 128) {
+//         data->last_poll_time = curr_time;
+//         data->last_x = x;
+//         data->last_y = y;
+//         return 0;
+//     } else {
+//         x += data->last_x;
+//         y += data->last_y;
+//         data->last_poll_time = 0;
+//         data->last_x = 0;
+//         data->last_y = 0;
+//     }
+// #endif
+
+//     if (x != 0 || y != 0) {
+//         if (input_mode != SCROLL) {
+//             input_report_rel(dev, INPUT_REL_X, x, false, K_FOREVER);
+//             input_report_rel(dev, INPUT_REL_Y, y, true, K_FOREVER);
+//         } else {
+//             data->scroll_delta_x += x;
+//             data->scroll_delta_y += y;
+//             if (abs(data->scroll_delta_y) > CONFIG_PMW3610_SCROLL_TICK) {
+//                 input_report_rel(dev, INPUT_REL_WHEEL,
+//                                  data->scroll_delta_y > 0 ? PMW3610_SCROLL_Y_NEGATIVE : PMW3610_SCROLL_Y_POSITIVE,
+//                                  true, K_FOREVER);
+//                 data->scroll_delta_x = 0;
+//                 data->scroll_delta_y = 0;
+//             } else if (abs(data->scroll_delta_x) > CONFIG_PMW3610_SCROLL_TICK) {
+//                 input_report_rel(dev, INPUT_REL_HWHEEL,
+//                                  data->scroll_delta_x > 0 ? PMW3610_SCROLL_X_NEGATIVE : PMW3610_SCROLL_X_POSITIVE,
+//                                  true, K_FOREVER);
+//                 data->scroll_delta_x = 0;
+//                 data->scroll_delta_y = 0;
+//             }
+//         }
+//     }
+
+//     return err;
+// }
+
+#include <zmk/mouse.h>
+
 static int pmw3610_report_data(const struct device *dev) {
     struct pixart_data *data = dev->data;
     uint8_t buf[PMW3610_BURST_SIZE];
@@ -604,7 +742,7 @@ static int pmw3610_report_data(const struct device *dev) {
             data->scroll_delta_x = 0;
             data->scroll_delta_y = 0;
         }
-        dividor = 1; // this should be handled with the ticks rather than dividors
+        dividor = 1;
         break;
     case SNIPE:
         set_cpi_if_needed(dev, CONFIG_PMW3610_SNIPE_CPI);
@@ -634,8 +772,7 @@ static int pmw3610_report_data(const struct device *dev) {
     int16_t raw_y =
         TOINT16((buf[PMW3610_Y_L_POS] + ((buf[PMW3610_XY_H_POS] & 0x0F) << 8)), 12) / dividor;
 
-    int16_t x;
-    int16_t y;
+    int16_t x, y;
 
     if (IS_ENABLED(CONFIG_PMW3610_ORIENTATION_0)) {
         x = -raw_x;
@@ -664,13 +801,11 @@ static int pmw3610_report_data(const struct device *dev) {
         ((int16_t)(buf[PMW3610_SHUTTER_H_POS] & 0x01) << 8) + buf[PMW3610_SHUTTER_L_POS];
     if (data->sw_smart_flag && shutter < 45) {
         reg_write(dev, 0x32, 0x00);
-
         data->sw_smart_flag = false;
     }
 
     if (!data->sw_smart_flag && shutter > 45) {
         reg_write(dev, 0x32, 0x80);
-
         data->sw_smart_flag = true;
     }
 #endif
@@ -693,21 +828,17 @@ static int pmw3610_report_data(const struct device *dev) {
 
     if (x != 0 || y != 0) {
         if (input_mode != SCROLL) {
-            input_report_rel(dev, INPUT_REL_X, x, false, K_FOREVER);
-            input_report_rel(dev, INPUT_REL_Y, y, true, K_FOREVER);
+            zmk_mouse_move(x, y); // send movement to central via split BLE
         } else {
             data->scroll_delta_x += x;
             data->scroll_delta_y += y;
+
             if (abs(data->scroll_delta_y) > CONFIG_PMW3610_SCROLL_TICK) {
-                input_report_rel(dev, INPUT_REL_WHEEL,
-                                 data->scroll_delta_y > 0 ? PMW3610_SCROLL_Y_NEGATIVE : PMW3610_SCROLL_Y_POSITIVE,
-                                 true, K_FOREVER);
+                zmk_mouse_scroll(0, data->scroll_delta_y > 0 ? -1 : 1);
                 data->scroll_delta_x = 0;
                 data->scroll_delta_y = 0;
             } else if (abs(data->scroll_delta_x) > CONFIG_PMW3610_SCROLL_TICK) {
-                input_report_rel(dev, INPUT_REL_HWHEEL,
-                                 data->scroll_delta_x > 0 ? PMW3610_SCROLL_X_NEGATIVE : PMW3610_SCROLL_X_POSITIVE,
-                                 true, K_FOREVER);
+                zmk_mouse_scroll(data->scroll_delta_x > 0 ? -1 : 1, 0);
                 data->scroll_delta_x = 0;
                 data->scroll_delta_y = 0;
             }
@@ -716,6 +847,7 @@ static int pmw3610_report_data(const struct device *dev) {
 
     return err;
 }
+
 
 static void pmw3610_gpio_callback(const struct device *gpiob, struct gpio_callback *cb,
                                   uint32_t pins) {
