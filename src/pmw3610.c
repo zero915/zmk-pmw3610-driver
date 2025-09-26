@@ -691,10 +691,11 @@ static int pmw3610_report_data(const struct device *dev) {
         }
     }
 #else
-    // PERIPHERAL: forward motion to central
-    if (x != 0 || y != 0) {
-        zmk_split_send_mouse_motion(x, y);
-    }
+    #if IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_PERIPHERAL)
+        if (x != 0 || y != 0) {
+            zmk_split_send_mouse_motion(x, y);
+        }
+    #endif
 #endif
 
     return 0;
