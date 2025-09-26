@@ -567,7 +567,6 @@ K_TIMER_DEFINE(automouse_layer_timer, deactivate_automouse_layer, NULL);
     #define GET_HIGHEST_LAYER() 0
 #endif
 
-
 static enum pixart_input_mode get_input_mode_for_current_layer(const struct device *dev) {
     const struct pixart_config *config = dev->config;
     uint8_t curr_layer = GET_HIGHEST_LAYER();
@@ -621,7 +620,7 @@ static int pmw3610_report_data(const struct device *dev) {
 
 #if AUTOMOUSE_LAYER > 0
     if (input_mode == MOVE &&
-            (automouse_triggered || zmk_keymap_highest_layer_active() != AUTOMOUSE_LAYER)
+            (automouse_triggered || GET_HIGHEST_LAYER() != AUTOMOUSE_LAYER)
     ) {
         activate_automouse_layer();
     }
