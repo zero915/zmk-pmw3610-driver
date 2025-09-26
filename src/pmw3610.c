@@ -14,7 +14,8 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/input/input.h>
 #include <zmk/keymap.h>
-#include <zmk/mouse.h>
+#include <zmk/hid/mouse.h>
+
 #include "pmw3610.h"
 
 #include <zephyr/logging/log.h>
