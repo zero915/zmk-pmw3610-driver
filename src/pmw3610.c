@@ -561,15 +561,9 @@ static void deactivate_automouse_layer(struct k_timer *timer) {
 K_TIMER_DEFINE(automouse_layer_timer, deactivate_automouse_layer, NULL);
 #endif
 
-#if IS_ENABLED(CONFIG_ZMK_KEYMAP)
-    #define GET_HIGHEST_LAYER() zmk_keymap_highest_layer_active()
-#else
-    #define GET_HIGHEST_LAYER() 0
-#endif
-
 static enum pixart_input_mode get_input_mode_for_current_layer(const struct device *dev) {
     const struct pixart_config *config = dev->config;
-    uint8_t curr_layer = GET_HIGHEST_LAYER();
+    uint8_t curr_layer = zmk_keymap_highest_layer_active();
     for (size_t i = 0; i < config->scroll_layers_len; i++) {
         if (curr_layer == config->scroll_layers[i]) {
             return SCROLL;
@@ -620,7 +614,7 @@ static int pmw3610_report_data(const struct device *dev) {
 
 #if AUTOMOUSE_LAYER > 0
     if (input_mode == MOVE &&
-            (automouse_triggered || GET_HIGHEST_LAYER() != AUTOMOUSE_LAYER)
+            (automouse_triggered || zmk_keymap_highest_layer_active() != AUTOMOUSE_LAYER)
     ) {
         activate_automouse_layer();
     }
