@@ -561,8 +561,25 @@ static void deactivate_automouse_layer(struct k_timer *timer) {
 K_TIMER_DEFINE(automouse_layer_timer, deactivate_automouse_layer, NULL);
 #endif
 
+// static enum pixart_input_mode get_input_mode_for_current_layer(const struct device *dev) {
+//     const struct pixart_config *config = dev->config;
+//     uint8_t curr_layer = zmk_keymap_highest_layer_active();
+//     for (size_t i = 0; i < config->scroll_layers_len; i++) {
+//         if (curr_layer == config->scroll_layers[i]) {
+//             return SCROLL;
+//         }
+//     }
+//     for (size_t i = 0; i < config->snipe_layers_len; i++) {
+//         if (curr_layer == config->snipe_layers[i]) {
+//             return SNIPE;
+//         }
+//     }
+//     return MOVE;
+// }
 static enum pixart_input_mode get_input_mode_for_current_layer(const struct device *dev) {
     const struct pixart_config *config = dev->config;
+
+#if IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
     uint8_t curr_layer = zmk_keymap_highest_layer_active();
     for (size_t i = 0; i < config->scroll_layers_len; i++) {
         if (curr_layer == config->scroll_layers[i]) {
@@ -575,6 +592,15 @@ static enum pixart_input_mode get_input_mode_for_current_layer(const struct devi
         }
     }
     return MOVE;
+#else
+    /* On peripherals we don't have local keymap/layer context.
+     * Use a safe default mode (MOVE). If you want a different default,
+     * change this return value or add config-based logic here.
+     */
+    (void)dev;
+    (void)config;
+    return MOVE;
+#endif
 }
 
 static int pmw3610_report_data(const struct device *dev) {
@@ -613,11 +639,21 @@ static int pmw3610_report_data(const struct device *dev) {
     data->curr_mode = input_mode;
 
 #if AUTOMOUSE_LAYER > 0
-    if (input_mode == MOVE &&
-            (automouse_triggered || zmk_keymap_highest_layer_active() != AUTOMOUSE_LAYER)
-    ) {
-        activate_automouse_layer();
-    }
+    // if (input_mode == MOVE &&
+    //         (automouse_triggered || zmk_keymap_highest_layer_active() != AUTOMOUSE_LAYER)
+    // ) {
+    //     activate_automouse_layer();
+    // }+    if (input_mode == MOVE) {
+    #if IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+            if (automouse_triggered || zmk_keymap_highest_layer_active() != AUTOMOUSE_LAYER) {
+                activate_automouse_layer();
+            }
+    #else
+            /* On peripherals we cannot reliably check highest layer; use automouse_triggered only. */
+            if (automouse_triggered) {
+                activate_automouse_layer();
+            }
+    #endif
 #endif
 
     int err = motion_burst_read(dev, buf, sizeof(buf));
